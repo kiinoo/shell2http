@@ -54,7 +54,7 @@ const (
 const INDEXHTML = `<!DOCTYPE html>
 <html>
 <head>
-    <title>❯ shell2http</title>
+    <title>❯ %s</title>
     <style>
     body {
         font-family: sans-serif;
@@ -69,14 +69,16 @@ const INDEXHTML = `<!DOCTYPE html>
     </style>
 </head>
 <body>
-	<h1>shell2http</h1>
+	<h1>%s</h1>
 	<ul>
 		%s
 	</ul>
-	Get from: <a href="https://github.com/msoap/shell2http">github.com/msoap/shell2http</a>
+	%s
 </body>
 </html>
 `
+
+const FOOTER = `Get from: <a href="https://github.com/msoap/shell2http">github.com/msoap/shell2http</a>`
 
 // ------------------------------------------------------------------
 
@@ -102,6 +104,8 @@ type Config struct {
 	key           string // SSL private key path
 	authUser      string // basic authentication user name
 	authPass      string // basic authentication password
+	title         string // title in page
+	showGitURL    bool   // hide git url in page
 	exportAllVars bool   // export all current environment vars
 	setCGI        bool   // set CGI variables
 	setForm       bool   // parse form from URL
@@ -166,6 +170,8 @@ func getConfig() (cmdHandlers []Command, appConfig Config, err error) {
 	flag.BoolVar(&appConfig.addExit, "add-exit", false, "add /exit command")
 	flag.StringVar(&appConfig.shell, "shell", appConfig.defaultShell, `custom shell or "" for execute without shell`)
 	flag.IntVar(&appConfig.cache, "cache", 0, "caching command out (in seconds)")
+	flag.StringVar(&appConfig.title, "title", "ci tool", `title in page`)
+	flag.BoolVar(&appConfig.showGitURL, "show-git", false, "show git url in page")
 	flag.BoolVar(&appConfig.oneThread, "one-thread", false, "run each shell command in one thread")
 	flag.BoolVar(&appConfig.showErrors, "show-errors", false, "show the standard output even if the command exits with a non-zero exit code")
 	flag.BoolVar(&appConfig.includeStderr, "include-stderr", false, "include stderr to output (default is stdout only)")
@@ -484,7 +490,11 @@ func setupHandlers(cmdHandlers []Command, appConfig Config, cacheTTL raphanus.DB
 
 	// --------------
 	if !appConfig.noIndex && !existsRootPath {
-		indexHTML := fmt.Sprintf(INDEXHTML, indexLiHTML)
+		footerHTML := ""
+		if appConfig.showGitURL {
+			footerHTML = FOOTER
+		}
+		indexHTML := fmt.Sprintf(INDEXHTML, appConfig.title, appConfig.title, indexLiHTML, footerHTML)
 		resultHandlers = append(resultHandlers, Command{
 			path: "/",
 			cmd:  "index page",
